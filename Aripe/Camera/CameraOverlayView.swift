@@ -43,7 +43,7 @@ struct CameraOverlayView: View {
                     }
                     Spacer()
                     
-                    Text("Place the plant in focus")
+                    Text("Place the Apple in Focus")
                         .foregroundColor(.white)
                         .font(.headline)
                         .padding(.bottom, 8)

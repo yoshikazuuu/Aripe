@@ -25,6 +25,7 @@ struct CameraView: UIViewRepresentable {
         private let session = AVCaptureSession()
         private var previewLayer: AVCaptureVideoPreviewLayer?
         private var model: VNCoreMLModel?
+        private var lastSampleBuffer: CMSampleBuffer?
         @Binding var prediction: String
 
         init(prediction: Binding<String>) {
@@ -63,10 +64,13 @@ struct CameraView: UIViewRepresentable {
             }
             self.previewLayer = preview
 
-            session.startRunning()
+            DispatchQueue.global(qos: .userInitiated).async {
+                self.session.startRunning()
+            }
         }
 
         func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+            self.lastSampleBuffer = sampleBuffer
             guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer),
                   let model = model else {
                 return
@@ -109,9 +113,61 @@ struct CameraView: UIViewRepresentable {
             }
         }
 
-        func captureStillImage() {
-            print("📸 Capture still image called (you can implement image saving here)")
-            // You could add logic here to extract and store a UIImage from the last frame.
+        func captureStillImage(completion: @escaping (UIImage?, String) -> Void) {
+            guard let buffer = lastSampleBuffer,
+                  let imageBuffer = CMSampleBufferGetImageBuffer(buffer),
+                  let model = model else {
+                completion(nil, "No frame or model.")
+                return
+            }
+
+            let ciImage = CIImage(cvPixelBuffer: imageBuffer)
+            let context = CIContext()
+            if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
+                let fullImage = UIImage(cgImage: cgImage)
+                let croppedImage = cropCenter(of: fullImage, size: CGSize(width: 250, height: 250))
+
+                // Run ML Prediction
+                let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+                let request = VNCoreMLRequest(model: model) { request, error in
+                    var resultText = "Prediction failed."
+                    if let results = request.results as? [VNClassificationObservation],
+                       let topResult = results.first {
+                        resultText = "\(topResult.identifier) (\(Int(topResult.confidence * 100))%)"
+                    }
+
+                    DispatchQueue.main.async {
+                        completion(croppedImage, resultText)
+                    }
+                }
+
+                do {
+                    try handler.perform([request])
+                } catch {
+                    print("❌ Error running ML request: \(error)")
+                    completion(croppedImage, "Prediction error.")
+                }
+
+            } else {
+                completion(nil, "Failed to create image.")
+            }
+        }
+        
+        func cropCenter(of image: UIImage, size: CGSize) -> UIImage {
+            let scale = image.scale
+            let imageSize = image.size
+
+            // Calculate crop rect in image coordinate space
+            let originX = (imageSize.width - size.width) / 2
+            let originY = (imageSize.height - size.height) / 2
+            let cropRect = CGRect(x: originX * scale, y: originY * scale, width: size.width * scale, height: size.height * scale)
+
+            guard let cgImage = image.cgImage?.cropping(to: cropRect) else {
+                print("❌ Failed to crop image.")
+                return image
+            }
+
+            return UIImage(cgImage: cgImage, scale: scale, orientation: image.imageOrientation)
         }
     }
 }
