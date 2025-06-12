@@ -17,7 +17,6 @@ struct MainView: View {
                 }
             } else {
                 CameraView(prediction: $predictionText, controller: cameraController)
-                
                 CameraOverlayView(
                     onCapture: {
                         cameraController.captureImage { image, prediction in
