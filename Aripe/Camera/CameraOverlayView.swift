@@ -23,13 +23,12 @@ struct CameraOverlayView: View {
                     )
                 
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(style: StrokeStyle(lineWidth: 2, dash: [8]))
+                    .stroke(style: StrokeStyle(lineWidth: 3, dash: [8]))
                     .frame(width: 250, height: 250)
                     .foregroundColor(.white)
                 
                 VStack {
                     HStack {
-                        Spacer()
                         Button(action: {
                             isFlashOn.toggle()
                             onToggleFlash()
@@ -37,36 +36,47 @@ struct CameraOverlayView: View {
                             Image(systemName: isFlashOn ? "bolt.fill" : "bolt.slash.fill")
                                 .foregroundColor(.white)
                                 .padding()
-                                .background(Circle().fill(Color.black.opacity(0.6)))
+                                .background(Circle().fill(Color.black.opacity(0.6)).frame(width: 40, height: 40))
                         }
                         .padding()
+                        Spacer()
                     }
                     Spacer()
                     
                     Text("Place the Apple in Focus")
                         .foregroundColor(.white)
                         .font(.headline)
-                        .padding(.bottom, 8)
                     
-                    Button(action: onCapture) {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 80, height: 80)
-                            .shadow(radius: 10)
+                    ZStack {
+                        VStack(spacing: 8) {
+                            Button(action: onCapture) {
+                                ZStack {
+                                    Circle()
+                                        .stroke(Color.white, lineWidth: 5)
+                                        .frame(width: 85, height: 85)
+                                    Circle()
+                                        .fill(Color.white)
+                                        .frame(width: 75, height: 75)
+                                }
+                            }
+                        }
+                        
+                        HStack {
+                            Spacer()
+                            Button(action: onOpenGallery) {
+                                Image(systemName: "photo.on.rectangle")
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 28))
+                                    .padding()
+                                    .background(Circle().fill(Color.black.opacity(0.6)))
+                            }
+                            .padding(.trailing, 32)
+                        }
                     }
-                    .padding(.bottom, 16)
-                    
-                    Button(action: onOpenGallery) {
-                        Image(systemName: "photo.on.rectangle")
-                            .foregroundColor(.white)
-                            .font(.system(size: 28))
-                            .padding()
-                            .background(Circle().fill(Color.black.opacity(0.6)))
-                    }
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 35)
                 }
             }
-            .edgesIgnoringSafeArea(.all)
+            .edgesIgnoringSafeArea(.bottom)
         }
     }
 }
