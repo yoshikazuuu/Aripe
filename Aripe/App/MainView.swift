@@ -7,7 +7,7 @@ struct MainView: View {
     @State private var capturedImage: UIImage?
     @State private var capturedPredictionLabel: String = ""
     @State private var capturedConfidence: Double = 0.0
-
+    @State private var showPhotoPicker = false
     @State private var navigateToSummary = false
 
     var body: some View {
@@ -26,7 +26,7 @@ struct MainView: View {
                     cameraController.toggleTorch()
                 },
                 onOpenGallery: {
-                    // Add photo picker if needed
+                    showPhotoPicker = true
                 }
             )
         }
@@ -38,6 +38,9 @@ struct MainView: View {
                 predictionLabel: capturedPredictionLabel,
                 confidence: capturedConfidence
             )
+        }
+        .sheet(isPresented: $showPhotoPicker) {
+            PhotoPickerView(selectedImage: $selectedImage)
         }
     }
 }

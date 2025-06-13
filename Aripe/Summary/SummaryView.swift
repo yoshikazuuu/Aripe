@@ -9,8 +9,6 @@ struct SummaryView: View {
         self.image = image
         self.predictionLabel = predictionLabel
         self.confidence = confidence
-
-        // Set back button color globally
         UINavigationBar.appearance().tintColor = UIColor.systemGreen
     }
 
@@ -23,21 +21,25 @@ struct SummaryView: View {
 
     private var resultInfo: (title: String, description: String, color: Color) {
         switch predictionLabel.lowercased() {
-        case "unripe":
+        case "unripe apple":
             return ("Belum Matang", "Apel masih keras dan belum manis", .orange)
-        case "ripe":
+        case "ripe apple":
             return ("Matang", "Siap dikonsumsi, rasa manis maksimal", .green)
-        case "rotten":
+        case "rotten apple":
             return ("Busuk", "Apel sudah tidak layak dikonsumsi", .red)
         default:
             return ("Tidak Dikenal", "Tidak bisa mendeteksi kondisi apel", .gray)
         }
     }
 
+    private var isPredictionValid: Bool {
+        predictionLabel != "No Frame or model" && confidence > 0.0
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                if let image = image {
+                if let image = image, isPredictionValid {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
@@ -46,26 +48,31 @@ struct SummaryView: View {
                         .clipped()
                         .cornerRadius(16)
                         .padding(.horizontal)
+                    Text(predictionLabel)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    Text(formattedDate)
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                    resultSection
+                    storageSection
+                    buttonSection
+                } else {
+                    Text("Foto tidak terdeteksi")
+                        .foregroundColor(.gray)
+                        .fontWeight(.semibold)
+                        .font(.title3)
+                    Text("Silakan coba scan ulang dengan pencahayaan yang lebih baik.")
+                        .font(.subheadline)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
                 }
-
-                Text("Apel Merah")
-                    .font(.title2)
-                    .fontWeight(.bold)
-
-                Text(formattedDate)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-
-                resultSection
-                storageSection
-                buttonSection
             }
             .padding(.bottom)
         }
         .navigationTitle("Hasil Scan")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(false)
-        // .tint(.green) // Not needed here if using appearance
     }
 
     private var resultSection: some View {
@@ -126,7 +133,7 @@ struct SummaryView: View {
     private var buttonSection: some View {
         HStack(spacing: 16) {
             Button(action: {
-                // You could trigger manual navigation if needed
+                // Back or rescan
             }) {
                 Text("Scan Ulang")
                     .frame(maxWidth: .infinity)
