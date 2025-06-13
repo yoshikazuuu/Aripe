@@ -113,43 +113,45 @@ struct CameraView: UIViewRepresentable {
             }
         }
 
-        func captureStillImage(completion: @escaping (UIImage?, String) -> Void) {
+        func captureStillImage(completion: @escaping (UIImage?, String, Double) -> Void) {
             guard let buffer = lastSampleBuffer,
                   let imageBuffer = CMSampleBufferGetImageBuffer(buffer),
                   let model = model else {
-                completion(nil, "No frame or model.")
+                completion(nil, "No frame or model", 0.0)
                 return
             }
 
             let ciImage = CIImage(cvPixelBuffer: imageBuffer)
             let context = CIContext()
-            if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
-                let fullImage = UIImage(cgImage: cgImage)
-                let croppedImage = cropCenter(of: fullImage, size: CGSize(width: 250, height: 250))
+            guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+                completion(nil, "Failed to create image", 0.0)
+                return
+            }
 
-                // Run ML Prediction
-                let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-                let request = VNCoreMLRequest(model: model) { request, error in
-                    var resultText = "Prediction failed."
-                    if let results = request.results as? [VNClassificationObservation],
-                       let topResult = results.first {
-                        resultText = "\(topResult.identifier) (\(Int(topResult.confidence * 100))%)"
-                    }
+            let fullImage = UIImage(cgImage: cgImage)
+            let croppedImage = cropCenter(of: fullImage, size: CGSize(width: 250, height: 250))
 
+            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            let request = VNCoreMLRequest(model: model) { request, error in
+                guard error == nil,
+                      let results = request.results as? [VNClassificationObservation],
+                      let topResult = results.first else {
                     DispatchQueue.main.async {
-                        completion(croppedImage, resultText)
+                        completion(croppedImage, "Prediction failed", 0.0)
                     }
+                    return
                 }
 
-                do {
-                    try handler.perform([request])
-                } catch {
-                    print("❌ Error running ML request: \(error)")
-                    completion(croppedImage, "Prediction error.")
+                DispatchQueue.main.async {
+                    completion(croppedImage, topResult.identifier, Double(topResult.confidence))
                 }
+            }
 
-            } else {
-                completion(nil, "Failed to create image.")
+            do {
+                try handler.perform([request])
+            } catch {
+                print("❌ Error running ML request: \(error)")
+                completion(croppedImage, "Prediction error", 0.0)
             }
         }
         

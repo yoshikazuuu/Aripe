@@ -8,7 +8,7 @@ class CameraController: ObservableObject {
         coordinator?.toggleTorch()
     }
 
-    func captureImage(completion: @escaping (UIImage?, String) -> Void) {
+    func captureImage(completion: @escaping (UIImage?, String, Double) -> Void) {
         coordinator?.captureStillImage(completion: completion)
     }
 }

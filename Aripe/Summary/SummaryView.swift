@@ -2,42 +2,151 @@ import SwiftUI
 
 struct SummaryView: View {
     let image: UIImage?
-    let prediction: String
-    let onClose: () -> Void
+    let predictionLabel: String
+    let confidence: Double
+
+    init(image: UIImage?, predictionLabel: String, confidence: Double) {
+        self.image = image
+        self.predictionLabel = predictionLabel
+        self.confidence = confidence
+
+        // Set back button color globally
+        UINavigationBar.appearance().tintColor = UIColor.systemGreen
+    }
+
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE, d MMMM yyyy – HH.mm"
+        formatter.locale = Locale(identifier: "id_ID")
+        return formatter.string(from: Date())
+    }
+
+    private var resultInfo: (title: String, description: String, color: Color) {
+        switch predictionLabel.lowercased() {
+        case "unripe":
+            return ("Belum Matang", "Apel masih keras dan belum manis", .orange)
+        case "ripe":
+            return ("Matang", "Siap dikonsumsi, rasa manis maksimal", .green)
+        case "rotten":
+            return ("Busuk", "Apel sudah tidak layak dikonsumsi", .red)
+        default:
+            return ("Tidak Dikenal", "Tidak bisa mendeteksi kondisi apel", .gray)
+        }
+    }
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Prediction Summary")
-                .font(.title)
-                .bold()
+        ScrollView {
+            VStack(spacing: 16) {
+                if let image = image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(height: 200)
+                        .frame(maxWidth: .infinity)
+                        .clipped()
+                        .cornerRadius(16)
+                        .padding(.horizontal)
+                }
 
-            if let image = image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 250, height: 250)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24)
-                            .stroke(Color.gray.opacity(0.5), lineWidth: 2)
-                    )
-            } else {
-                Text("No image available")
+                Text("Apel Merah")
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                Text(formattedDate)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+
+                resultSection
+                storageSection
+                buttonSection
             }
+            .padding(.bottom)
+        }
+        .navigationTitle("Hasil Scan")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(false)
+        // .tint(.green) // Not needed here if using appearance
+    }
 
-            Text("Result: \(prediction)")
-                .font(.headline)
-                .padding()
+    private var resultSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 12) {
+                Text("\(Int(confidence * 100))%")
+                    .font(.title)
+                    .bold()
+                    .foregroundColor(resultInfo.color)
 
-            Button("Back to Camera") {
-                onClose()
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(resultInfo.title)
+                        .font(.headline)
+                        .foregroundColor(resultInfo.color)
+                    Text(resultInfo.description)
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
             }
-            .padding()
-            .background(Color.blue.opacity(0.8))
-            .foregroundColor(.white)
-            .cornerRadius(10)
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(resultInfo.color.opacity(0.1))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+
+    private var storageSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label("Lokasi Penyimpanan Ideal", systemImage: "thermometer")
+                .font(.headline)
+
+            Text("20–22°C")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+
+            infoSection(title: "Estimasi ketahanan",
+                        content: "- Dalam Kulkas: tahan 7 hari\n- Suhu ruang: 2 hari lagi sebelum terlalu matang")
+
+            infoSection(title: "Jika apel sudah dipotong",
+                        content: "- Simpan potongan apel di wadah tertutup di kulkas.\n- Tambahkan air lemon atau air garam agar tidak cepat kecokelatan.")
+
+            infoSection(title: "Tips lainnya",
+                        content: "Jangan simpan apel di dekat pisang atau alpukat agar tidak cepat matang.\nGunakan kantong kertas untuk mempercepat kematangan jika ingin cepat dimakan.")
+        }
+        .padding(.horizontal)
+    }
+
+    private func infoSection(title: String, content: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.headline)
+            Text(content)
+                .font(.subheadline)
+                .foregroundColor(.gray)
+        }
+    }
+
+    private var buttonSection: some View {
+        HStack(spacing: 16) {
+            Button(action: {
+                // You could trigger manual navigation if needed
+            }) {
+                Text("Scan Ulang")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.gray.opacity(0.2))
+                    .foregroundColor(.black)
+                    .cornerRadius(12)
+            }
+
+            Button(action: {
+                // Save action
+            }) {
+                Text("Simpan Apel")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+            }
+        }
+        .padding(.horizontal)
     }
 }
